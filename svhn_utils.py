@@ -48,11 +48,25 @@ def parse_digit_struct(digit_struct):
 def one_hot(dig):
     toreturn = np.zeros([len(dig), 10])
     for i in range(len(dig)):
-        toreturn[i, dig[i]] = 1
+        toreturn[i, dig[i]-1] = 1
     return toreturn
 
 
-def pad_one_hots(oh):
-    toreturn = np.zeros((5, 10))
-    toreturn[:len(oh), :] = oh
+def pad_one_hots(y_ex):
+    toreturn = np.zeros((5, 11))
+    toreturn[:len(y_ex), :-1] = y_ex
+    toreturn[len(y_ex):, -1] = 1
     return toreturn
+
+
+def shuffle(x, *args, seed=None):
+    idx = np.arange(len(x))
+    if seed is not None:
+        np.random.seed(seed)
+    np.random.shuffle(idx)
+    x = x[idx]
+    targs = [arg[idx] for arg in args]
+    if len(targs) > 0:
+        return [x] + targs
+    else:
+        return x
