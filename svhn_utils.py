@@ -3,14 +3,31 @@ import numpy as np
 # import h5py
 
 
-def file2tensor(filename):
+def evenly_pad(image, shape):
+    height_lacking = shape[1] - image.size[1]
+    width_lacking = shape[0] - image.size[0]
+    left_pad = width_lacking // 2
+    right_pad = width_lacking - left_pad
+
+    top_pad = height_lacking // 2
+    bot_pad = height_lacking - top_pad
+
+    return image.crop([-left_pad, -top_pad, image.size[0] + right_pad, image.size[1] + bot_pad])
+
+
+def file2tensor(filename, shape=(128, 64)):
     with PIL.Image.open(filename) as im:
         width = im.size[0]
+        height = im.size[1]
         if im.size[1] < width // 2:
-            cropped = im.crop([0, 0, width, width // 2])
+            cropped = evenly_pad(im, [width, width // 2])
         else:
-            cropped = im.crop([0, 0, im.size[1]*2, im.size[1]])
-        resized = cropped.resize([64, 32])
+            cropped = evenly_pad(im, [height * 2, height])
+
+        if cropped.size[0] > shape[0]:
+            resized = cropped.resize(shape)
+        else:
+            resized = evenly_pad(cropped, shape)
         return np.asarray(resized)
 
 
