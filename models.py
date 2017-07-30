@@ -535,7 +535,7 @@ def make_deeper_model_v9(input_shape):
     return model
 
 
-def _inception_module(input_layer, tower_channels_1: int, tower_channels_2: int, tower_channels_3):
+def _inception_module(input_layer, tower_channels_1, tower_channels_2, tower_channels_3):
     """From keras code example https://keras.io/getting-started/functional-api-guide/ """
     def maybe_convert(tower_channels):
         if isinstance(tower_channels, tuple) or isinstance(tower_channels, list):
@@ -589,6 +589,42 @@ def make_inception_model_v1(input_shape):
 
     model = Model(in0, outputs=[softmax14])
     opt = Adam(0.0001)
+    model.compile(optimizer=opt, loss='categorical_crossentropy')
+
+    return model
+
+
+def make_inception_model_v2(input_shape):
+    in0 = Input(shape=[input_shape[1], input_shape[2], input_shape[3]], name='X')
+    conv1 = Conv2D(30, (5, 5), activation='relu')(in0)
+    conv2 = Conv2D(60, (5, 5), activation='relu')(conv1)
+    max2 = MaxPooling2D((2, 2), (2, 2), padding='same')(conv2)
+    max2 = BatchNormalization()(max2)
+    conv3 = Conv2D(120, (5, 5), activation='relu')(max2)
+    max4 = MaxPooling2D((2, 2), (2, 2), padding='same')(conv3)
+    max4 = BatchNormalization()(max4)
+    incp5 = _inception_module(max4, (60, 200), (60, 120), 80)  # 400
+    max6 = MaxPooling2D((2, 2), (2, 2), padding='same')(incp5)
+    max6 = BatchNormalization()(max6)
+    incp7 = _inception_module(max6, (200, 200), (200, 120), 80)  # 400
+    max8 = MaxPooling2D((2, 2), (2, 2), padding='same')(incp7)
+    max8 = BatchNormalization()(max8)
+    incp9 = _inception_module(max8, (200, 100), (200, 60), 40)  # 200
+    max10 = MaxPooling2D((2, 2), (2, 2), padding='same')(incp9)
+    resh11 = Reshape([-1])(max10)  # 1600
+
+    dens12 = Dense(800, activation='relu', kernel_regularizer=l2(0.0001))(resh11)
+    dens12 = Dropout(0.5)(dens12)
+
+    dens13 = Dense(800, activation='relu', kernel_regularizer=l2(0.0001))(dens12)
+    dens13 = Dropout(0.5)(dens13)
+
+    dig_14 = Dense(5 * 11, activation='linear', kernel_regularizer=l2(0.0001))(dens13)
+    resh14 = Reshape([5, 11])(dig_14)
+    softmax14 = Activation('softmax')(resh14)
+
+    model = Model(in0, outputs=[softmax14])
+    opt = Adam(0.001)
     model.compile(optimizer=opt, loss='categorical_crossentropy')
 
     return model
