@@ -6,7 +6,7 @@ from IPython.display import clear_output
 
 def get_pred(y):
     digits = np.argmax(y, axis=-1)
-    return [''.join([str(x).replace('10', '_') for x in dig]) for dig in digits]
+    return [''.join([str(x+1).replace('10', '_') for x in dig]) for dig in digits]
 
 
 def accuracy(y_true, y_pred):

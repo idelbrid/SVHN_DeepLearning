@@ -1,4 +1,4 @@
-from keras.layers import Input, Dense, Conv2D, MaxPooling2D, Reshape, Dropout, Activation, Conv1D, TimeDistributed, BatchNormalization, LSTM, RepeatVector
+from keras.layers import Input, Dense, Conv2D, MaxPooling2D, Reshape, Dropout, Activation, Conv1D, TimeDistributed, BatchNormalization, LSTM, RepeatVector, concatenate
 from keras.models import Model
 from keras.optimizers import Adam, SGD, RMSprop, Adagrad, Adadelta
 from keras.regularizers import l2
@@ -418,8 +418,213 @@ def make_vgg_model_v1(input_shape):
 
     return model
 
+def make_vgg_model_v2(input_shape):
+    from keras.applications import VGG16
+    vgg = VGG16(include_top=False, input_shape=input_shape)
+    input_layer = vgg.input
+    last_vgg_layer = vgg.output
+
+    reshaped = Reshape([-1])(last_vgg_layer)
+    dense1 = Dense(1000, activation='relu')(reshaped)
+    dense1 = Dropout(0.5)(dense1)
+    dense2 = Dense(1000, activation='relu')(dense1)
+    dense2 = Dropout(0.5)(dense2)
+    logits = Dense(55)(dense2)
+    logits = Reshape([5, 11])(logits)
+    output = Activation('softmax')(logits)
+
+    model = Model(input_layer, outputs=[output])
+    optimizer = Adam(0.0001)
+    model.compile(optimizer=optimizer, loss='categorical_crossentropy')
+
+    return model
+
+
+def make_vgg_model_v3(input_shape):
+    from keras.applications import VGG16
+    vgg = VGG16(include_top=False, input_shape=input_shape, weights=None)
+    input_layer = vgg.input
+    last_vgg_layer = vgg.output
+
+    reshaped = Reshape([-1])(last_vgg_layer)
+    dense1 = Dense(1000, activation='relu')(reshaped)
+    dense1 = Dropout(0.5)(dense1)
+    dense2 = Dense(1000, activation='relu')(dense1)
+    dense2 = Dropout(0.5)(dense2)
+    logits = Dense(55)(dense2)
+    logits = Reshape([5, 11])(logits)
+    output = Activation('softmax')(logits)
+
+    model = Model(input_layer, outputs=[output])
+    optimizer = Adam(0.0001)
+    model.compile(optimizer=optimizer, loss='categorical_crossentropy')
+
+    return model
+
+
+def make_deeper_model_v8(input_shape):
+    in0 = Input(shape=[input_shape[1], input_shape[2], input_shape[3]], name='X')
+    conv1 = Conv2D(50, (3, 3), strides=(1, 1), padding='same', activation='relu')(in0)
+    conv2 = Conv2D(100, (5, 5), strides=(1, 1), padding='same', activation='relu')(conv1)
+    conv2 = Conv2D(100, (3, 3), strides=(1, 1), padding='same', activation='relu')(conv2)
+    max3 = MaxPooling2D((2, 2), (2, 2), padding='same')(conv2)
+    max3 = BatchNormalization()(max3)
+    conv4 = Conv2D(200, (5, 5), strides=(1, 1), padding='same', activation='relu')(max3)
+    conv5 = Conv2D(200, (3, 3), strides=(1, 1), padding='same', activation='relu')(conv4)
+    max6 = MaxPooling2D((2, 2), (2, 2), padding='same')(conv5)
+    max6 = BatchNormalization()(max6)
+    conv7 = Conv2D(200, (5, 5), strides=(1, 1), padding='same', activation='relu')(max6)
+    conv8 = Conv2D(200, (3, 3), strides=(1, 1), padding='same', activation='relu')(conv7)
+    max9 = MaxPooling2D((2, 2), (2, 2), padding='same')(conv8)
+    max9 = BatchNormalization()(max9)
+    conv10 = Conv2D(200, (5, 5), strides=(1, 1), padding='same', activation='relu')(max9)
+    conv11 = Conv2D(200, (3, 3), strides=(1, 1), padding='same', activation='relu')(conv10)
+    max12 = MaxPooling2D((2, 2), (2, 2), padding='same')(conv11)
+
+    conv13 = Conv2D(200, (4, 4), strides=(1, 1), padding='same', activation='relu')(max12)
+    conv14 = Conv2D(200, (3, 3), strides=(1, 1), padding='same', activation='relu')(conv13)
+    max15 = MaxPooling2D((2, 2), (2, 2), padding='same')(conv14)
+
+    resh15 = Reshape([-1])(max15)
+    dens16 = Dense(800, activation='relu', kernel_regularizer=l2(0.0001))(resh15)
+    dens16 = Dropout(0.5)(dens16)
+
+    dig_17 = Dense(5 * 11, activation='linear', kernel_regularizer=l2(0.0001))(dens16)
+    resh17 = Reshape([5, 11])(dig_17)
+    softmax17 = Activation('softmax')(resh17)
+
+    model = Model(in0, outputs=[softmax17])
+    opt = Adam(0.0001)
+    model.compile(optimizer=opt, loss='categorical_crossentropy')
+
+    return model
+
+
+def make_deeper_model_v9(input_shape):
+    in0 = Input(shape=[input_shape[1], input_shape[2], input_shape[3]], name='X')
+    conv1 = Conv2D(50, (5, 5), strides=(1, 1), padding='same', activation='relu')(in0)
+    conv2 = Conv2D(100, (5, 5), strides=(1, 1), padding='same', activation='relu')(conv1)
+    max3 = MaxPooling2D((2, 2), (2, 2), padding='same')(conv2)
+    max3 = BatchNormalization()(max3)
+    conv4 = Conv2D(200, (5, 5), strides=(1, 1), padding='same', activation='relu')(max3)
+    max5 = MaxPooling2D((2, 2), (2, 2), padding='same')(conv4)
+    max5 = BatchNormalization()(max5)
+    conv6 = Conv2D(200, (5, 5), strides=(1, 1), padding='same', activation='relu')(max5)
+    max7 = MaxPooling2D((2, 2), (2, 2), padding='same')(conv6)
+    max7 = BatchNormalization()(max7)
+    conv8 = Conv2D(200, (5, 5), strides=(1, 1), padding='same', activation='relu')(max7)
+    max9 = MaxPooling2D((2, 2), (2, 2), padding='same')(conv8)
+    conv10 = Conv2D(200, (4, 4), strides=(1, 1), padding='same', activation='relu')(max9)
+    max11 = MaxPooling2D((2, 2), (2, 2), padding='same')(conv10)
+
+    resh11 = Reshape([-1])(max11)
+    dens12 = Dense(800, activation='relu', kernel_regularizer=l2(0.0001))(resh11)
+    dens12 = Dropout(0.5)(dens12)
+
+    dens13 = Dense(800, activation='relu', kernel_regularizer=l2(0.0001))(dens12)
+    dens13 = Dropout(0.5)(dens13)
+
+    dig_14 = Dense(5 * 11, activation='linear', kernel_regularizer=l2(0.0001))(dens13)
+    resh14 = Reshape([5, 11])(dig_14)
+    softmax14 = Activation('softmax')(resh14)
+
+    model = Model(in0, outputs=[softmax14])
+    opt = Adam(0.0001)
+    model.compile(optimizer=opt, loss='categorical_crossentropy')
+
+    return model
+
+
+def _inception_module(input_layer, tower_channels_1: int, tower_channels_2: int, tower_channels_3):
+    """From keras code example https://keras.io/getting-started/functional-api-guide/ """
+    def maybe_convert(tower_channels):
+        if isinstance(tower_channels, tuple) or isinstance(tower_channels, list):
+            assert len(tower_channels) == 2
+        else:
+            tower_channels = (tower_channels, tower_channels)
+        return tower_channels
+
+    tower_channels_1 = maybe_convert(tower_channels_1)
+    tower_channels_2 = maybe_convert(tower_channels_2)
+
+    tower_1 = Conv2D(tower_channels_1[0], (1, 1), padding='same', activation='relu')(input_layer)
+    tower_1 = Conv2D(tower_channels_1[1], (3, 3), padding='same', activation='relu')(tower_1)
+
+    tower_2 = Conv2D(tower_channels_2[0], (1, 1), padding='same', activation='relu')(input_layer)
+    tower_2 = Conv2D(tower_channels_2[1], (5, 5), padding='same', activation='relu')(tower_2)
+
+    tower_3 = MaxPooling2D((3, 3), strides=(1, 1), padding='same')(input_layer)
+    tower_3 = Conv2D(tower_channels_3, (1, 1), padding='same', activation='relu')(tower_3)
+
+    return concatenate([tower_1, tower_2, tower_3])
+
+
+def make_inception_model_v1(input_shape):
+    in0 = Input(shape=[input_shape[1], input_shape[2], input_shape[3]], name='X')
+    incp1 = _inception_module(in0, 25, 15, 10)  # 50
+    max2 = MaxPooling2D((2, 2), (2, 2), padding='same')(incp1)
+    max2 = BatchNormalization()(max2)
+    incp3 = _inception_module(max2, 50, 30, 20)  # 100
+    max4 = MaxPooling2D((2, 2), (2, 2), padding='same')(incp3)
+    max4 = BatchNormalization()(max4)
+    incp5 = _inception_module(max4, 100, 60, 40)  # 200
+    max6 = MaxPooling2D((2, 2), (2, 2), padding='same')(incp5)
+    max6 = BatchNormalization()(max6)
+    incp7 = _inception_module(max6, 100, 60, 40)  # 200
+    max8 = MaxPooling2D((2, 2), (2, 2), padding='same')(incp7)
+    max8 = BatchNormalization()(max8)
+    incp9 = _inception_module(max8, 100, 60, 40)  # 200
+    max10 = MaxPooling2D((2, 2), (2, 2), padding='same')(incp9)
+    resh11 = Reshape([-1])(max10)  # 1600
+
+    dens12 = Dense(800, activation='relu', kernel_regularizer=l2(0.0001))(resh11)
+    dens12 = Dropout(0.5)(dens12)
+
+    dens13 = Dense(800, activation='relu', kernel_regularizer=l2(0.0001))(dens12)
+    dens13 = Dropout(0.5)(dens13)
+
+    dig_14 = Dense(5 * 11, activation='linear', kernel_regularizer=l2(0.0001))(dens13)
+    resh14 = Reshape([5, 11])(dig_14)
+    softmax14 = Activation('softmax')(resh14)
+
+    model = Model(in0, outputs=[softmax14])
+    opt = Adam(0.0001)
+    model.compile(optimizer=opt, loss='categorical_crossentropy')
+
+    return model
+
+
+# def make_vgg_model_v4(input_shape):
+#     from keras.applications import VGG16
+#     vgg = VGG16(include_top=False, input_shape=input_shape)
+#     input_layer = vgg.input
+#
+#     last_vgg_layer = vgg.output
+#
+#     reshaped = Reshape([-1])(last_vgg_layer)
+#     dense1 = Dense(1000, activation='relu')(reshaped)
+#     dense1 = Dropout(0.5)(dense1)
+#     dense2 = Dense(1000, activation='relu')(dense1)
+#     dense2 = Dropout(0.5)(dense2)
+#     logits = Dense(55)(dense2)
+#     logits = Reshape([5, 11])(logits)
+#     output = Activation('softmax')(logits)
+#
+#     model = Model(input_layer, outputs=[output])
+#     optimizer = Adam(0.0001)
+#     model.compile(optimizer=optimizer, loss='categorical_crossentropy')
+#
+#     return model
+
+
+#
+# def make_deep_supervision_model_v1(input_shape):
+#     # TODO:
+#     pass
+
 
 if __name__ == '__main__':
+
     model = make_lstm_model_v1([None, 32, 64, 3])
 
     for line in [layer.output_shape for layer in model.layers]:
